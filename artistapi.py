@@ -20,8 +20,26 @@ class Artist:
 	def __init__(self, artist):
 		self.artist = artist
 		self.artist_id = self.set_artist_id(artist)
-		self.albums = self.set_albums(self.artist_id)
-		self.tracks = self.set_tracklists(self.artist, self.albums)
+
+		result = musicbrainzngs.get_artist_by_id(self.artist_id)
+
+		# The api seems to return a near miss if it can't find the correct artist
+		# which causes problems further on, so, check the name of the artist with the
+		# returned id and make sure they match
+		
+		if result:
+			if result['artist']['name'] != artist:
+				raise Exception
+
+		if self.artist_id:
+			self.albums = self.set_albums(self.artist_id)
+		else:
+			raise Exception
+
+		if self.albums:
+			self.tracks = self.set_tracklists(self.artist, self.albums)
+		else:
+			raise Exception
 
 	def get_tracklists(self):
 		return self.tracks
@@ -168,7 +186,11 @@ if __name__ == "__main__":
 	# Wanted to use threads here but ran out of time
 	for a in range(len(args.artist)):
 		print(f"Processing '{args.artist[a]}' ...")
-		artistlist.append(Artist(args.artist[a]))
+		try:
+			artistlist.append(Artist(args.artist[a]))
+		except:
+			print(f"No details found for artist '{args.artist[a]}' - aborting")
+			sys.exit()
 
 		tracklist.append(artistlist[a].get_tracklists())
 
